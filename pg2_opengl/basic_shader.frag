@@ -37,7 +37,8 @@ void main( void )
 //	FragColor =  spec;
 //	FragColor =  vec4(texture(sampler2D(materials[ex_material_index].tex_diffuse_handle), ex_tex_coord ).rgb,1);
 
-	FragColor =  (diff + spec) * light + amb;
+	FragColor =  (diff + spec + amb)/3;
+//	FragColor = diff;
 //	FragColor =  vec4(ex_normal.rgb, 1);
 
 }

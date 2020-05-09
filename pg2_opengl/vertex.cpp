@@ -17,11 +17,12 @@ Vertex::Vertex( const Vector3 position, const Vector3 normal, Vector3 color, Coo
 	}	
 }
 
-MyVertex::MyVertex(Vertex v, int material_index, Color3f amb, Color3f spec)
+MyVertex::MyVertex(Vertex v, int material_index)
 {
 	this->position = v.position;
 	this->color = v.color;
 	this->normal = v.normal;
+	this->tangent = v.tangent;
 	if (v.texture_coords != NULL)
 	{
 		for (int i = 0; i < NO_TEXTURE_COORDS; ++i)
@@ -31,8 +32,6 @@ MyVertex::MyVertex(Vertex v, int material_index, Color3f amb, Color3f spec)
 	}
 
 	this->material_index = material_index;
-	this->ambient = Vector3(amb.data[0], amb.data[1], amb.data[2]);
-	this->specular = Vector3(spec.data[0], spec.data[1], spec.data[2]);
 
 }
 

@@ -4,7 +4,7 @@
 #include "vector3.h"
 #include "matrix3x3.h"
 #include "matrix4x4.h"
-
+#include "glutils.h"
 /*! \class Camera
 \brief A simple pin-hole camera.
 
@@ -29,13 +29,14 @@ public:
 
 	void set_fov_y(const float fov_y);
 
-	void Update(int width, int height);
+	void Update();
 
 	float aspect_ratio;
 	float width_half;
 	float height_half;
 
-	void MoveForward(const float dt);
+	void Rotate(float dt);
+	void SetUniforms(GLuint program);
 
 	Matrix4x4 projection() const;
 	Matrix4x4 view();

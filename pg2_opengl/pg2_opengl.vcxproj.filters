@@ -81,9 +81,6 @@
     <ClInclude Include="structs.h">
       <Filter>Header Files\math</Filter>
     </ClInclude>
-    <ClInclude Include="glutils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="matrix4x4.h">
       <Filter>Header Files\math</Filter>
     </ClInclude>
@@ -91,6 +88,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\libs\glad\include\glad\glad.h">
+      <Filter>Header Files\opengl</Filter>
+    </ClInclude>
+    <ClInclude Include="glutils.h">
       <Filter>Header Files\opengl</Filter>
     </ClInclude>
   </ItemGroup>

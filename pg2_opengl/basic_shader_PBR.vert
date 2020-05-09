@@ -3,6 +3,7 @@ layout (location = 0) in vec3 in_position;
 layout (location = 1) in vec3 in_normal;
 layout (location = 2) in vec3 in_color;
 layout (location = 3) in vec2 in_texcoord;
+layout (location = 3) in vec3 in_tangent;
 
 layout (location = 5) in int in_material_index;
 struct Material
@@ -24,12 +25,13 @@ layout (std430, binding = 0) readonly buffer Materials
 };
 uniform mat4 MVP;
 uniform mat4 MV; 
+uniform vec3 in_eye; 
 
 out vec3 ex_color;
 out vec3 ex_normal;
-out vec3 ex_binormal;
-
 out vec3 ex_pos;
+out vec3 ex_eye;
+out mat3 ex_TBN;
 out vec2 ex_tex_coord;
 out vec3 ex_lightPos;
 out float light;
@@ -42,27 +44,18 @@ void main( void )
 {
 	gl_Position = MVP * vec4(in_position.x, in_position.y, in_position.z, 1.0f);
 
-	vec3 tangent;
-	vec3 c1 = cross(in_normal, vec3(0.0, 0.0, 1.0));
-	vec3 c2 = cross(in_normal, vec3(0.0, 1.0, 0.0));
+	vec3 T = normalize(in_tangent);
+	vec3 N = in_normal;
+	vec3 B = cross(T, N);
+	if(dot(cross(T, N), B) < 0)
+		T = -T;
+	ex_TBN = mat3(T, B, N);
 
-	if (length(c1)>length(c2))
-	{
-		tangent = c1;
-	}
-	else
-	{
-		tangent = c2;
-	}
-
-	tangent = normalize(tangent);
-
-	ex_binormal = cross(in_normal, tangent);
-	ex_binormal = normalize(ex_binormal);
 	ex_material_index = in_material_index;
 	ex_color = in_color;
 	ex_normal = in_normal;
-	ex_tex_coord = in_texcoord;
+	ex_tex_coord = vec2(in_texcoord.x, 1.0 - in_texcoord.y);
 	view_matrix = MV;
-	ex_pos = (MV * vec4(in_position.x, in_position.y, in_position.z, 1.0f)).xyz;
+	ex_pos = gl_Position.rgb;
+	ex_eye = in_eye;
 }

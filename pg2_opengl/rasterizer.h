@@ -20,7 +20,7 @@ public:
 	int InitDeviceAndScenePBR(const char* filename);
 	int InitShaderProgram();
 	void InitFrameBuffers();
-	int MainLoop(bool rotate);
+	int MainLoop( Vector3 lightPos, bool rotate);
 	int ReleaseDeviceAndScene();
 	void Resize(int width, int height);
 

@@ -14,3 +14,16 @@ void SetMatrix4x4( const GLuint program, const GLfloat * data, const char * matr
 		glUniformMatrix4fv( location, 1, GL_TRUE, data );
 	}
 }
+void SetVector3(const GLuint program, const GLfloat* data, const char* vector_name)
+{
+	const GLint location = glGetUniformLocation(program, vector_name);
+
+	if (location == -1)
+	{
+			printf("Vector '%s' not found in active shader.\n", vector_name);
+	}
+	else
+	{
+		glUniform3fv(location, 1, data);
+	}
+}

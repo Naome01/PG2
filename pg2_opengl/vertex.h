@@ -57,11 +57,10 @@ public:
 	Vector3 normal; /*!< Normála vertexu. */
 	Vector3 color; /*!< RGB barva vertexu <0, 1>^3. */
 	Coord2f texture_coords[NO_TEXTURE_COORDS]; /*!< Texturovací souøadnice. */
-	Vector3 ambient;
-	Vector3 specular;
+	Vector3 tangent;
 	int material_index{ 0 };
 
 
-	MyVertex(Vertex v, int material_index, Color3f amb, Color3f spec);
+	MyVertex(Vertex v, int material_index);
 };
 #endif

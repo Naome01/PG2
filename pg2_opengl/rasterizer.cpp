@@ -18,6 +18,15 @@ void CreateBindlessTexture(GLuint& texture, GLuint64& handle, const int width, c
 	handle = glGetTextureHandleARB(texture); // produces a handle representing the texture in a shader function
 	glMakeTextureHandleResidentARB(handle);
 }
+int set_attribute(int stride, int location, GLenum type, int size, int offset)
+{
+	if (type == GL_FLOAT)
+		glVertexAttribPointer(location, size, GL_FLOAT, GL_FALSE, stride, (GLvoid*)offset);
+	else
+		glVertexAttribIPointer(location, size, GL_INT, stride, (GLvoid*)offset);
+	glEnableVertexAttribArray(location);
+	return size * (type == GL_FLOAT ? sizeof(GLfloat) : sizeof(GLint));
+}
 Rasterizer::Rasterizer(const int width, const int height, const float fov_y, const Vector3 view_from, const Vector3 view_at, float near_plane, float far_plane)
 {
 	camera = Camera(width, height, fov_y, view_from, view_at, near_plane, far_plane);
@@ -68,7 +77,9 @@ void framebuffer_resize_callback(GLFWwindow* window, int width, int height)
 
 void Rasterizer::Resize(int width, int height)
 {
-	camera.Update(width, height); // we need to update camera parameters as well
+	camera.width_ = width;
+	camera.height_ = height;
+	camera.Update(); // we need to update camera parameters as well
 	// delete custom FBO with old width and height dimensions
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glDeleteRenderbuffers(1, &rbo_color);
@@ -234,8 +245,9 @@ int Rasterizer::InitDeviceAndScene(const char* filename)
 				const Vertex& vertex = triangle.vertex(j);
 				Material* m = surface->get_material();
 				int m_index = m->material_index;
-
-				vertices.push_back(MyVertex(vertex, m_index, m->ambient_, m->specular_));
+				if (m_index >4)
+					m_index = m_index;
+				vertices.push_back(MyVertex(vertex, m_index));
 
 			}
 
@@ -432,8 +444,7 @@ int Rasterizer::InitDeviceAndScenePBR(const char* filename)
 				const Vertex& vertex = triangle.vertex(j);
 				Material* m = surface->get_material();
 				int m_index = m->material_index;
-
-				vertices.push_back(MyVertex(vertex, m_index, m->ambient_, m->specular_));
+				vertices.push_back(MyVertex(vertex, m_index));
 
 			}
 
@@ -469,36 +480,24 @@ int Rasterizer::InitDeviceAndScenePBR(const char* filename)
 	vbo = 0;
 	glGenBuffers(1, &vbo); // generate vertex buffer object (one of OpenGL objects) and get the unique ID corresponding to that buffer
 	glBindBuffer(GL_ARRAY_BUFFER, vbo); // bind the newly created buffer to the GL_ARRAY_BUFFER target
-	glBufferData(GL_ARRAY_BUFFER, (vertices.size() * sizeof(MyVertex)), vertices.data(), GL_STATIC_DRAW); // copies the previously defined vertex data into the buffer's memory
+	glBufferData(GL_ARRAY_BUFFER, size, vertices.data(), GL_STATIC_DRAW); // copies the previously defined vertex data into the buffer's memory
+
 
 	// vertex position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)0);
-	glEnableVertexAttribArray(0);
-
+	int location = 0;
+	int offset = 0;
+	offset += set_attribute(sizeof(MyVertex), location++, GL_FLOAT, 3, offset);
 	// normal
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 3));
-	glEnableVertexAttribArray(1);
-
+	offset += set_attribute(sizeof(MyVertex), location++, GL_FLOAT, 3, offset);
 	// color
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 6));
-	glEnableVertexAttribArray(2);
-
+	offset += set_attribute(sizeof(MyVertex), location++, GL_FLOAT, 3, offset);
 	// vertex texture coordinates
-	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 9));
-	glEnableVertexAttribArray(3);
-
-	//// ambient
-	//glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 11));
-	//glEnableVertexAttribArray(2);
-
-	//// specular
-	//glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 14));
-	//glEnableVertexAttribArray(2);
-
+	offset += set_attribute(sizeof(MyVertex), location++, GL_FLOAT, 2, offset);
+	// tangent
+	offset += set_attribute(sizeof(MyVertex), location++, GL_FLOAT, 3, offset);
 	//material index
-	glVertexAttribIPointer(5, 1, GL_INT, vertex_stride, (void*)(sizeof(int) * 17));
-	glEnableVertexAttribArray(5);
-
+	offset += set_attribute(sizeof(MyVertex), location++, GL_INT, 1, offset);
+	
 	/*PBR shader*/
 	GLMaterialPBR* gl_materials = new GLMaterialPBR[materials_.size()];
 	int m = 0;
@@ -507,7 +506,7 @@ int Rasterizer::InitDeviceAndScenePBR(const char* filename)
 		if (tex_diffuse) {
 			GLuint id = 0;
 			CreateBindlessTexture(id, gl_materials[m].tex_diffuse_handle, tex_diffuse->width(), tex_diffuse->height(), (GLubyte*)tex_diffuse->data());
-			gl_materials[m].diffuse = Color3f({ 1.0f, 1.0f, 1.0f }); // white diffuse color
+			gl_materials[m].diffuse = material->diffuse_; // white diffuse color
 		}
 		else {
 			GLuint id = 0;
@@ -515,16 +514,17 @@ int Rasterizer::InitDeviceAndScenePBR(const char* filename)
 			CreateBindlessTexture(id, gl_materials[m].tex_diffuse_handle, 1, 1, data); // white texture
 			gl_materials[m].diffuse = material->diffuse_;
 		}
-		Texture3u* tex_norm = material->texture(Material::kNormalMapSlot);
-		gl_materials[m].normal = Color3f({ 1.f, 1.f, 1.f });
+		Texture3u* tex_norm =  material->texture(Material::kNormalMapSlot);
 		if (tex_norm) {
 			GLuint id = 0;
 			CreateBindlessTexture(id, gl_materials[m].tex_normal_handle, tex_norm->width(), tex_norm->height(), (GLubyte*)tex_norm->data());
+			gl_materials[m].normal = Color3f({ -1.f, 1.f, 1.f }); // -1 indicates to use texture
 		}
 		else {
 			GLuint id = 0;
 			GLubyte data[] = { 255, 255, 255, 255 }; // opaque white
 			CreateBindlessTexture(id, gl_materials[m].tex_normal_handle, 1, 1, data); // white texture
+			gl_materials[m].normal = Color3f({ 1.f, 1.f, 1.f }); 
 		}
 		Texture3u* tex_rma = material->texture(Material::kRMAMapSlot);
 		gl_materials[m].rma = Color3f({ material->roughness_, material->metallicness, 1.0 });
@@ -542,7 +542,7 @@ int Rasterizer::InitDeviceAndScenePBR(const char* filename)
 	GLuint ssbo_materials = 0;
 	glGenBuffers(1, &ssbo_materials);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_materials);
-	const GLsizeiptr gl_materials_size = sizeof(GLMaterial) * materials_.size();
+	const GLsizeiptr gl_materials_size = sizeof(GLMaterialPBR) * materials_.size();
 	glBufferData(GL_SHADER_STORAGE_BUFFER, gl_materials_size, gl_materials, GL_STATIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_materials);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -643,11 +643,11 @@ void Rasterizer::InitFrameBuffers()
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 }
 
-int Rasterizer::MainLoop(bool rotate = true)
+int Rasterizer::MainLoop(Vector3 lightPos,bool rotate = true)
 {
 	glUseProgram(shader_program);
 
-	float a = deg2rad(45);
+	float a = deg2rad(1);
 	while (!glfwWindowShouldClose(window))
 	{
 
@@ -657,20 +657,15 @@ int Rasterizer::MainLoop(bool rotate = true)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // state using function
 
 		glBindVertexArray(vao);
-		Matrix4x4 model;
-		model.set(0, 0, cosf(a));
-		model.set(0, 1, -sinf(a));
-		model.set(1, 0, sinf(a));
-		model.set(1, 1, cosf(a));
-		if(rotate)
-		 a += 1e-2f;
-		Matrix4x4 mvp = camera.projection() * camera.view() * model;
-		SetMatrix4x4(shader_program, mvp.data(), "MVP");
-		Matrix4x4 mv = camera.view() * model;
-		SetMatrix4x4(shader_program, mv.data(), "MV");
-
-
+		if (rotate)
+		{
+			camera.Rotate(a);
+			//a += 1e-4f;
+			if (a >= 1) a = 0;
+		}
+		camera.SetUniforms(shader_program);
 		glDrawArrays(GL_TRIANGLES, 0, no_triangles * 3);
+		SetVector3(shader_program, lightPos.data, "light_pos");
 
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo); // bind custom FBO for reading
 		glReadBuffer(GL_COLOR_ATTACHMENT0); // select it‘s first color buffer for reading

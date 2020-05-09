@@ -1,5 +1,5 @@
-/*! \file objloader.cpp
-\brief Naèítání Wavefront OBJ souborù.
+ï»¿/*! \file objloader.cpp
+\brief NaÄÃ­tÃ¡nÃ­ Wavefront OBJ souborÅ¯.
 http://en.wikipedia.org/wiki/Wavefront_.obj_file
 */
 
@@ -45,15 +45,15 @@ Texture3u * TextureProxy(const std::string & full_name, std::map<std::string, Te
 }
 
 /*! \fn LoadMTL( const char * file_name, const char * path, std::vector<Material *> & materials )
-\brief Naète materiály z MTL souboru \a file_name.
-Soubor \a file_name se musí nacházet v cestì \a path. Naètené materiály budou vráceny pøes pole \a materials.
-\param file_name název MTL souboru vèetnì pøípony.
-\param path cesta k zadanému souboru.
-\param materials pole materiálù, do kterého se budou ukládat naètené materiály.
+\brief NaÄte materiÃ¡ly z MTL souboru \a file_name.
+Soubor \a file_name se musÃ­ nachÃ¡zet v cestÄ› \a path. NaÄtenÃ© materiÃ¡ly budou vrÃ¡ceny pÅ™es pole \a materials.
+\param file_name nÃ¡zev MTL souboru vÄetnÄ› pÅ™Ã­pony.
+\param path cesta k zadanÃ©mu souboru.
+\param materials pole materiÃ¡lÅ¯, do kterÃ©ho se budou uklÃ¡dat naÄtenÃ© materiÃ¡ly.
 */
 int LoadMTL( const char * file_name, const char * path, std::vector<Material *> & materials )
 {
-	// otevøení soouboru
+	// otevÅ™enÃ­ soouboru
 	FILE * file = fopen( file_name, "rt" );
 	if ( file == NULL )
 	{
@@ -62,16 +62,16 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 		return -1;
 	}
 
-	// naètení celého souboru do pamìti	
+	// naÄtenÃ­ celÃ©ho souboru do pamÄ›ti	
 	size_t file_size = static_cast<size_t>( GetFileSize64( file_name ) );	
-	char * buffer = new char[file_size + 1]; // +1 protoe budeme za poslední naètenı byte dávat NULL
+	char * buffer = new char[file_size + 1]; // +1 protoÅ¾e budeme za poslednÃ­ naÄtenÃ½ byte dÃ¡vat NULL
 	char * buffer_backup = new char[file_size + 1];
 
 	printf( "Loading materials from '%s' (%0.1f KB)...\n", file_name, file_size / 1024.0f );
 
 	size_t number_of_items_read = fread( buffer, sizeof( *buffer ), file_size, file );
 
-	// otestujeme korektnost naètení dat
+	// otestujeme korektnost naÄtenÃ­ dat
 	if ( !feof( file ) && ( number_of_items_read != file_size ) )
 	{
 		printf( "Unexpected end of file encountered.\n" );
@@ -82,12 +82,12 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 		return -1;
 	}	
 
-	buffer[number_of_items_read] = 0; // zajistíme korektní ukonèení øetìzce
+	buffer[number_of_items_read] = 0; // zajistÃ­me korektnÃ­ ukonÄenÃ­ Å™etÄ›zce
 
-	fclose( file ); // ukonèíme práci se souborem
+	fclose( file ); // ukonÄÃ­me prÃ¡ci se souborem
 	file = NULL;
 
-	memcpy( buffer_backup, buffer, file_size + 1 ); // záloha bufferu
+	memcpy( buffer_backup, buffer, file_size + 1 ); // zÃ¡loha bufferu
 
 	printf( "Done.\n\n");
 
@@ -102,8 +102,8 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 	std::map<std::string, Texture3u*> already_loaded_textures;
 
 	Material * material = NULL;
-
-	// --- naèítání všech materiálù ---
+	int cnt = 0;
+	// --- naÄÃ­tÃ¡nÃ­ vÅ¡ech materiÃ¡lÅ¯ ---
 	while ( line != NULL )
 	{
 		if ( line[0] != '#' )
@@ -122,9 +122,11 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 				material = NULL;
 
 				sscanf( line, "%*s %s", &material_name );
-				//printf( "material name=%s\n", material_name );				
+				printf( "material name=%s\n", material_name );				
 
 				material = new Material();
+				material->material_index = cnt;
+				cnt++;
 			}
 			else
 			{
@@ -132,22 +134,22 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 				if ( strstr( tmp, "Ka" ) == tmp ) // ambient color of the material
 				{
 					sscanf( tmp, "%*s %f %f %f", &material->ambient_.data[0], &material->ambient_.data[1], &material->ambient_.data[2] );					
-					//material->ambient_ = Color3f::toLinear( material->ambient_ );
+					material->ambient_ = Color3f::toLinear( material->ambient_ );
 				}
 				else if ( strstr( tmp, "Kd" ) == tmp ) // diffuse color of the material
 				{
 					sscanf( tmp, "%*s %f %f %f", &material->diffuse_.data[0], &material->diffuse_.data[1], &material->diffuse_.data[2] );
-					//material->diffuse_ = Color3f::toLinear( material->diffuse_ );
+					material->diffuse_ = Color3f::toLinear( material->diffuse_ );
 				}
 				else if ( strstr( tmp, "Ks" ) == tmp ) // specular color of the material
 				{
 					sscanf( tmp, "%*s %f %f %f", &material->specular_.data[0], &material->specular_.data[1], &material->specular_.data[2] );
-					//material->specular_ = Color3f::toLinear( material->specular_ );
+					material->specular_ = Color3f::toLinear( material->specular_ );
 				}
 				else if ( strstr( tmp, "Ke" ) == tmp ) // emission color of the material
 				{
 					sscanf( tmp, "%*s %f %f %f", &material->emission_.data[0], &material->emission_.data[1], &material->emission_.data[2] );
-					//material->emission_ = material->emission_.linear();
+					material->emission_ = Color3f::toLinear(material->emission_);
 				}
 				else if ( strstr( tmp, "Ns" ) == tmp ) // specular coefficient
 				{
@@ -216,7 +218,7 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 			}
 		}
 
-		line = strtok( NULL, delim ); // naètení dalšího øádku
+		line = strtok( NULL, delim ); // naÄtenÃ­ dalÅ¡Ã­ho Å™Ã¡dku
 	}
 
 	if ( material != NULL )
@@ -227,7 +229,7 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 	}
 	material = NULL;
 
-	//memcpy( buffer, buffer_backup, file_size + 1 ); // obnovení bufferu po èinnosti strtok
+	//memcpy( buffer, buffer_backup, file_size + 1 ); // obnovenÃ­ bufferu po Äinnosti strtok
 	SAFE_DELETE_ARRAY( buffer_backup );
 	SAFE_DELETE_ARRAY( buffer );	
 
@@ -239,7 +241,7 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 int LoadOBJ( const char * file_name, std::vector<Surface *> & surfaces, std::vector<Material *> & materials,
 	const bool flip_yz , const Vector3 default_color )
 {
-	// otevøení soouboru
+	// otevÅ™enÃ­ soouboru
 	FILE * file = fopen( file_name, "rt" );
 	if ( file == NULL )
 	{
@@ -248,7 +250,7 @@ int LoadOBJ( const char * file_name, std::vector<Surface *> & surfaces, std::vec
 		return -1;
 	}
 
-	// cesta k zadanému souboru
+	// cesta k zadanÃ©mu souboru
 	char path[128] = { "" };
 	const char * tmp = strrchr( file_name, '/' );
 	if ( tmp != NULL )
@@ -256,16 +258,16 @@ int LoadOBJ( const char * file_name, std::vector<Surface *> & surfaces, std::vec
 		memcpy( path, file_name, sizeof( char ) * ( tmp - file_name + 1 ) );
 	}
 
-	// naètení celého souboru do pamìti
+	// naÄtenÃ­ celÃ©ho souboru do pamÄ›ti
 	/*const long long*/size_t file_size = static_cast<size_t>( GetFileSize64( file_name ) );
-	char * buffer = new char[file_size + 1]; // +1 protoe budeme za poslední naètenı byte dávat NULL
+	char * buffer = new char[file_size + 1]; // +1 protoÅ¾e budeme za poslednÃ­ naÄtenÃ½ byte dÃ¡vat NULL
 	char * buffer_backup = new char[file_size + 1];	
 
 	printf( "Loading model from '%s' (%0.1f MB)...\n", file_name, file_size / sqr( 1024.0f ) );
 
 	size_t number_of_items_read = fread( buffer, sizeof( *buffer ), file_size, file );
 
-	// otestujeme korektnost naètení dat
+	// otestujeme korektnost naÄtenÃ­ dat
 	if ( !feof( file ) && ( number_of_items_read != file_size ) )
 	{
 		printf( "Unexpected end of file encountered.\n" );
@@ -276,12 +278,12 @@ int LoadOBJ( const char * file_name, std::vector<Surface *> & surfaces, std::vec
 		return -1;
 	}	
 
-	buffer[number_of_items_read] = 0; // zajistíme korektní ukonèení øetìzce
+	buffer[number_of_items_read] = 0; // zajistÃ­me korektnÃ­ ukonÄenÃ­ Å™etÄ›zce
 
-	fclose( file ); // ukonèíme práci se souborem
+	fclose( file ); // ukonÄÃ­me prÃ¡ci se souborem
 	file = NULL;
 
-	memcpy( buffer_backup, buffer, file_size + 1 ); // záloha bufferu
+	memcpy( buffer_backup, buffer, file_size + 1 ); // zÃ¡loha bufferu
 
 	printf( "Done.\n\n");
 
@@ -294,7 +296,7 @@ int LoadOBJ( const char * file_name, std::vector<Surface *> & surfaces, std::vec
 	const char delim[] = "\n";
 	char * line = strtok( buffer, delim );	
 
-	// --- naèítání všech materiálovıch knihoven, první prùchod ---
+	// --- naÄÃ­tÃ¡nÃ­ vÅ¡ech materiÃ¡lovÃ½ch knihoven, prvnÃ­ prÅ¯chod ---
 	while ( line != NULL )
 	{
 		switch ( line[0] )
@@ -308,29 +310,29 @@ int LoadOBJ( const char * file_name, std::vector<Surface *> & surfaces, std::vec
 			break;
 		}
 
-		line = strtok( NULL, delim ); // naètení dalšího øádku
+		line = strtok( NULL, delim ); // naÄtenÃ­ dalÅ¡Ã­ho Å™Ã¡dku
 	}
 
-	memcpy( buffer, buffer_backup, file_size + 1 ); // obnovení bufferu po èinnosti strtok
+	memcpy( buffer, buffer_backup, file_size + 1 ); // obnovenÃ­ bufferu po Äinnosti strtok
 
 	for ( int i = 0; i < static_cast<int>( material_libraries.size() ); ++i )
 	{		
 		LoadMTL( material_libraries[i].c_str(), path, materials );
 	}
 
-	std::vector<Vector3> vertices; // celı jeden soubor
+	std::vector<Vector3> vertices; // celÃ½ jeden soubor
 	std::vector<Vector3> per_vertex_normals;
 	std::vector<Coord2f> texture_coords;	
 
 	line = strtok( buffer, delim );	
 	//line = Trim( line );
 
-	// --- naèítání všech souøadnic, druhı prùchod ---
+	// --- naÄÃ­tÃ¡nÃ­ vÅ¡ech souÅ™adnic, druhÃ½ prÅ¯chod ---
 	while ( line != NULL )
 	{
 		switch ( line[0] )
 		{
-		case 'v': // seznam vrcholù, normál nebo texturovacích souøadnic aktuální skupiny			
+		case 'v': // seznam vrcholÅ¯, normÃ¡l nebo texturovacÃ­ch souÅ™adnic aktuÃ¡lnÃ­ skupiny			
 			{
 				switch ( line[1] )
 				{
@@ -352,7 +354,7 @@ int LoadOBJ( const char * file_name, std::vector<Surface *> & surfaces, std::vec
 					}
 					break;
 
-				case 'n': // normála vertexu
+				case 'n': // normÃ¡la vertexu
 					{
 						Vector3 normal;
 						if ( flip_yz )
@@ -370,7 +372,7 @@ int LoadOBJ( const char * file_name, std::vector<Surface *> & surfaces, std::vec
 					}
 					break;
 
-				case 't': // texturovací souøadnice
+				case 't': // texturovacÃ­ souÅ™adnice
 					{
 						Coord2f texture_coord;
 						float z = 0;
@@ -384,163 +386,163 @@ int LoadOBJ( const char * file_name, std::vector<Surface *> & surfaces, std::vec
 			break;		
 		}
 
-		line = strtok( NULL, delim ); // naètení dalšího øádku
+		line = strtok( NULL, delim ); // naÄtenÃ­ dalÅ¡Ã­ho Å™Ã¡dku
 		//line = Trim( line );
 	}
 
-	memcpy( buffer, buffer_backup, file_size + 1 ); // obnovení bufferu po èinnosti strtok
+	memcpy( buffer, buffer_backup, file_size + 1 ); // obnovenÃ­ bufferu po Äinnosti strtok
 
 	printf( "%I64u vertices, %I64u normals and %I64u texture coords.\n",
 		vertices.size(), per_vertex_normals.size(), texture_coords.size() );
 
-	/// buffery pro naèítání øetìzcù	
+	/// buffery pro naÄÃ­tÃ¡nÃ­ Å™etÄ›zcÅ¯	
 	char group_name[128];	
 	char material_name[128];
-	char vertices_indices[4][8 * 3 + 2];	// pomocnı øetìzec pro naèítání indexù a 4 x "v/vt/vn"
-	char vertex_indices[3][8];				// pomocnı øetìzec jednotlivıch indexù "v", "vt" a "vn"	
+	char vertices_indices[4][8 * 3 + 2];	// pomocnÃ½ Å™etÄ›zec pro naÄÃ­tÃ¡nÃ­ indexÅ¯ aÅ¾ 4 x "v/vt/vn"
+	char vertex_indices[3][8];				// pomocnÃ½ Å™etÄ›zec jednotlivÃ½ch indexÅ¯ "v", "vt" a "vn"	
 
-	std::vector<Vertex> face_vertices; // pole všech vertexù právì naèítané face
+	std::vector<Vertex> face_vertices; // pole vÅ¡ech vertexÅ¯ prÃ¡vÄ› naÄÃ­tanÃ© face
 
-	int no_surfaces = 0; // poèet naètenıch ploch
+	int no_surfaces = 0; // poÄet naÄtenÃ½ch ploch
 
 	line = strtok( buffer, delim ); // reset
 	//line = Trim( line );
 
-	// --- naèítání jednotlivıch objektù (group), tøetí prùchod ---
-	while ( line != NULL )
+	// --- naÄÃ­tÃ¡nÃ­ jednotlivÃ½ch objektÅ¯ (group), tÅ™etÃ­ prÅ¯chod ---
+	while (line != NULL)
 	{
-		switch ( line[0] )
+		switch (line[0])
 		{
 		case 'g': // group
+		{
+			if (face_vertices.size() > 0)
 			{
-				if ( face_vertices.size() > 0 )
-				{
-					surfaces.push_back( BuildSurface( std::string( group_name ), face_vertices ) );
-					printf( "\r%I64u group(s)\t\t", surfaces.size() );
-					++no_surfaces;
-					face_vertices.clear();
+				surfaces.push_back(BuildSurface(std::string(group_name), face_vertices));
+				printf("\r%I64u group(s)\t\t", surfaces.size());
+				++no_surfaces;
+				face_vertices.clear();
 
-					for ( int i = 0; i < static_cast<int>( materials.size() ); ++i )
+				for (int i = 0; i < static_cast<int>(materials.size()); ++i)
+				{
+					if (materials[i]->name().compare(material_name) == 0)
 					{
-						if ( materials[i]->name().compare( material_name ) == 0 )
-						{
-							Surface * s = *--surfaces.end();
-							s->set_material( materials[i] );
-							break;
-						}
+						Surface* s = *--surfaces.end();
+						s->set_material(materials[i]);
+						break;
 					}
 				}
-
-				sscanf( line, "%*s %s", &group_name );
-				//printf( "Group name: %s\n", group_name );				
 			}
-			break;
+
+			sscanf(line, "%*s %s", &group_name);
+			//printf( "Group name: %s\n", group_name );				
+		}
+		break;
 
 		case 'u': // usemtl			
-			{
-				sscanf( line, "%*s %s", &material_name );
-				//printf( "Material name: %s\n", material_name );						
-			}
-			break;
+		{
+			sscanf(line, "%*s %s", &material_name);
+			//printf( "Material name: %s\n", material_name );						
+		}
+		break;
 
 		case 'f': // face
+		{
+			// ! pÃ¸edpoklÃ¡dÃ¡me pouze trojÃºhelnÃ­ky !
+			// ! pÃ¸edpoklÃ¡dÃ¡me vyuÅ¾itÃ­ vÅ¡ech tÃ¸Ã­ poloÅ¾ek v/vt/vn !				
+			int no_slashes = 0;
+			for (int i = 0; i < int(strlen(line)); ++i)
 			{
-				// ! pøedpokládáme pouze trojúhelníky !
-				// ! pøedpokládáme vyuití všech tøí poloek v/vt/vn !				
-				int no_slashes = 0;
-				for ( int i = 0; i < int( strlen( line ) ); ++i )
+				if (line[i] == '/')
 				{
-					if ( line[i] == '/' )
-					{
-						++no_slashes;
-					}
-				}
-				switch ( no_slashes )
-				{
-				case 2*3: // triangles
-					sscanf( line, "%*s %s %s %s",
-						&vertices_indices[0], &vertices_indices[1], &vertices_indices[2] );
-					break;
-
-				case 2*4: // quadrilaterals				
-					sscanf( line, "%*s %s %s %s %s",
-						&vertices_indices[0], &vertices_indices[1], &vertices_indices[2], &vertices_indices[3] );
-					break;
-				}
-
-				// TODO smoothing groups
-
-				for ( int i = 0; i < 3; ++i )				
-				{									
-					if (strstr(vertices_indices[i], "//"))
-					{
-						sscanf(vertices_indices[i], "%[0-9]//%[0-9]",
-							&vertex_indices[0], &vertex_indices[2]);
-						vertex_indices[1][0] = 0;
-					}
-					else
-					{
-						sscanf(vertices_indices[i], "%[0-9]/%[0-9]/%[0-9]",
-							&vertex_indices[0], &vertex_indices[1], &vertex_indices[2]);
-					}
-
-					const int vertex_index = atoi( vertex_indices[0] ) - 1;					
-					const int texture_coord_index = atoi( vertex_indices[1] ) - 1;
-					const int per_vertex_normal_index = atoi( vertex_indices[2] ) - 1;
-
-					if (texture_coord_index >= 0)
-					{
-						face_vertices.push_back(Vertex(vertices[vertex_index],
-							per_vertex_normals[per_vertex_normal_index],
-							default_color, &texture_coords[texture_coord_index]));
-					}
-					else
-					{
-						face_vertices.push_back(Vertex(vertices[vertex_index],
-							per_vertex_normals[per_vertex_normal_index],
-							default_color));
-					}
-					
-				}
-
-				if ( no_slashes == 2*4 )
-				{
-					const int i[] = { 0, 2, 3 };
-					for ( int j = 0; j < 3; ++j )
-					{				
-						sscanf( vertices_indices[i[j]], "%[0-9]/%[0-9]/%[0-9]",					
-							&vertex_indices[0], &vertex_indices[1], &vertex_indices[2] );
-
-						const int vertex_index = atoi( vertex_indices[0] ) - 1;
-						const int texture_coord_index = atoi( vertex_indices[1] ) - 1;
-						const int per_vertex_normal_index = atoi( vertex_indices[2] ) - 1;
-
-						face_vertices.push_back( Vertex( vertices[vertex_index],
-							per_vertex_normals[per_vertex_normal_index],
-							default_color, &texture_coords[texture_coord_index] ) );
-					}
+					++no_slashes;
 				}
 			}
-			break;
+			switch (no_slashes)
+			{
+			case 2 * 3: // triangles
+				sscanf(line, "%*s %s %s %s",
+					&vertices_indices[0], &vertices_indices[1], &vertices_indices[2]);
+				break;
+
+			case 2 * 4: // quadrilaterals				
+				sscanf(line, "%*s %s %s %s %s",
+					&vertices_indices[0], &vertices_indices[1], &vertices_indices[2], &vertices_indices[3]);
+				break;
+			}
+
+			// TODO smoothing groups
+
+			for (int i = 0; i < 3; ++i)
+			{
+				if (strstr(vertices_indices[i], "//"))
+				{
+					sscanf(vertices_indices[i], "%[0-9]//%[0-9]",
+						&vertex_indices[0], &vertex_indices[2]);
+					vertex_indices[1][0] = 0;
+				}
+				else
+				{
+					sscanf(vertices_indices[i], "%[0-9]/%[0-9]/%[0-9]",
+						&vertex_indices[0], &vertex_indices[1], &vertex_indices[2]);
+				}
+
+				const int vertex_index = atoi(vertex_indices[0]) - 1;
+				const int texture_coord_index = atoi(vertex_indices[1]) - 1;
+				const int per_vertex_normal_index = atoi(vertex_indices[2]) - 1;
+
+				if (texture_coord_index >= 0)
+				{
+					face_vertices.push_back(Vertex(vertices[vertex_index],
+						per_vertex_normals[per_vertex_normal_index],
+						default_color, &texture_coords[texture_coord_index]));
+				}
+				else
+				{
+					face_vertices.push_back(Vertex(vertices[vertex_index],
+						per_vertex_normals[per_vertex_normal_index],
+						default_color));
+				}
+
+			}
+
+			if (no_slashes == 2 * 4)
+			{
+				const int i[] = { 0, 2, 3 };
+				for (int j = 0; j < 3; ++j)
+				{
+					sscanf(vertices_indices[i[j]], "%[0-9]/%[0-9]/%[0-9]",
+						&vertex_indices[0], &vertex_indices[1], &vertex_indices[2]);
+
+					const int vertex_index = atoi(vertex_indices[0]) - 1;
+					const int texture_coord_index = atoi(vertex_indices[1]) - 1;
+					const int per_vertex_normal_index = atoi(vertex_indices[2]) - 1;
+
+					face_vertices.push_back(Vertex(vertices[vertex_index],
+						per_vertex_normals[per_vertex_normal_index],
+						default_color, &texture_coords[texture_coord_index]));
+				}
+			}
+		}
+		break;
 		}
 
-		line = strtok( NULL, delim ); // naètení dalšího øádku
+		line = strtok(NULL, delim); // naÃ¨tenÃ­ dalÅ¡Ã­ho Ã¸Ã¡dku
 		//line = Trim( line );
 	}
 
-	if ( face_vertices.size() > 0 )
+	if (face_vertices.size() > 0)
 	{
-		surfaces.push_back( BuildSurface( std::string( group_name ), face_vertices ) );
-		printf( "\r%I64u group(s)\t\t", surfaces.size() );
+		surfaces.push_back(BuildSurface(std::string(group_name), face_vertices));
+		printf("\r%I64u group(s)\t\t", surfaces.size());
 		++no_surfaces;
 		face_vertices.clear();
 
-		for ( int i = 0; i < static_cast<int>( materials.size() ); ++i )
+		for (int i = 0; i < static_cast<int>(materials.size()); ++i)
 		{
-			if ( materials[i]->name().compare( material_name ) == 0 )
+			if (materials[i]->name().compare(material_name) == 0)
 			{
-				Surface * s = *--surfaces.end();
-				s->set_material( materials[i] );
+				Surface* s = *--surfaces.end();
+				s->set_material(materials[i]);
 				break;
 			}
 		}
