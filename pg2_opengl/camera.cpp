@@ -13,7 +13,7 @@ Camera::Camera(const int width, const int height, const float fov_y,
 
 	this->near_plane = near_plane;
 	this->far_plane = far_plane;
-	
+
 	Update();
 }
 
@@ -56,9 +56,11 @@ void Camera::Update()
 	M_c_w_ = Matrix3x3(x_c, y_c, z_c);
 
 	m_view = Matrix4x4(x_c, y_c, z_c, view_from_);
+	m_view.EuclideanInverse();
+
 	m_projection = Matrix4x4();
 	m_projection.set(0, 0, near_plane / (width_half));
-	m_projection.set(1, 1, 1.0f * (near_plane / (height_half)));
+	m_projection.set(1, 1, near_plane / (height_half));
 	m_projection.set(2, 2, (far_plane + near_plane) / (near_plane - far_plane));
 	m_projection.set(2, 3, (2.0f * far_plane * near_plane) / (near_plane - far_plane));
 	m_projection.set(3, 2, -1.0f);
@@ -89,6 +91,5 @@ Matrix4x4 Camera::projection() const
 
 Matrix4x4 Camera::view()
 {
-	m_view.EuclideanInverse();
 	return m_view;
 }

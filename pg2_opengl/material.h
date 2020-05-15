@@ -178,8 +178,22 @@ struct GLMaterialPBR
 	Color3f normal;// 3 * 4 B
 	GLbyte pad4[4]; // + 4 B = 16 B
 	GLuint64 tex_normal_handle{ 0 }; // 1 * 8 B
-	GLbyte pad5[8]; // + 8 B = 1 B
+	GLbyte pad5[8]; // + 8 B = 16 B
 	
+};
+#pragma pack( pop )
+
+#pragma pack( push, 1 ) // 1 B alignment
+struct GLTexturesPBR
+{
+	GLuint64 tex_env_handle{ 0 }; // 1 * 8 B
+	GLbyte pad1[8]; // + 8 B = 16 B
+
+	GLuint64 tex_brdf_handle{ 0 }; // 1 * 8 B
+	GLbyte pad2[8]; // + 8 B = 16 B
+
+	GLuint64 tex_ir_handle{ 0 }; // 1 * 8 B
+	GLbyte pad3[8]; // + 8 B = 16 B
 };
 #pragma pack( pop )
 #endif

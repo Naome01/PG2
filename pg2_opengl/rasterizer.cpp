@@ -161,10 +161,20 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
-	
 }
+void Rasterizer::handle_mouse()
+{
+	if (glfwGetMouseButton(window, 0) == GLFW_PRESS)
+		pressedMouse = true;
 
-int Rasterizer::InitDeviceAndScene(const char* filename)
+	// Move/Stop moving camera
+	if (glfwGetMouseButton(window, 0) == GLFW_RELEASE && pressedMouse)
+	{
+		camera.rotate = !camera.rotate;
+		pressedMouse = false;
+	}
+}
+int Rasterizer::InitDevice()
 {
 	glfwSetErrorCallback(glfw_callback);
 
@@ -218,239 +228,6 @@ int Rasterizer::InitDeviceAndScene(const char* filename)
 	// map from the range of NDC coordinates <-1.0, 1.0>^2 to <0, width> x <0, height>
 	glViewport(0, 0, camera.width_, camera.height_);
 
-
-	const int no_surfaces = LoadOBJ(filename, surfaces_, materials_);
-	this->no_triangles = 0;
-
-	for (auto surface : surfaces_)
-	{
-		this->no_triangles += surface->no_triangles();
-	}
-	
-	std::vector<MyVertex> vertices;
-	std::vector<int> indices;
-	// surfaces loop
-	int k = 0, l = 0;
-	for (auto surface : surfaces_)
-	{
-
-		// triangles loop
-		for (int i = 0; i < surface->no_triangles(); ++i, ++l)
-		{
-			Triangle& triangle = surface->get_triangle(i);
-
-			//// vertices loop
-			for (int j = 0; j < 3; ++j, ++k)
-			{
-				const Vertex& vertex = triangle.vertex(j);
-				Material* m = surface->get_material();
-				int m_index = m->material_index;
-				if (m_index >4)
-					m_index = m_index;
-				vertices.push_back(MyVertex(vertex, m_index));
-
-			}
-
-		} // end of triangles loop
-
-	} // end of surfaces loop
-	vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-	const char* vertex_shader_source = LoadShader("basic_shader.vert");
-
-	glShaderSource(vertex_shader, 1, &vertex_shader_source, nullptr);
-	glCompileShader(vertex_shader);
-	SAFE_DELETE_ARRAY(vertex_shader_source);
-	CheckShader(vertex_shader);
-
-	fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-	const char* fragment_shader_source = LoadShader("basic_shader.frag");
-
-	glShaderSource(fragment_shader, 1, &fragment_shader_source, nullptr);
-	glCompileShader(fragment_shader);
-	SAFE_DELETE_ARRAY(fragment_shader_source);
-	CheckShader(fragment_shader);
-
-	shader_program = glCreateProgram();
-	glAttachShader(shader_program, vertex_shader);
-	glAttachShader(shader_program, fragment_shader);
-	glLinkProgram(shader_program);
-	// TODO check linking	const int no_vertices = no_triangles * 3; //count of points
-	const int size = (vertices.size() * sizeof(MyVertex)); // count of elements in vector * size of one element = size of whole array
-	const int vertex_stride = sizeof(MyVertex); // size of one MyVertex
-	// optional index array
-	vao = 0;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-	vbo = 0;
-	glGenBuffers(1, &vbo); // generate vertex buffer object (one of OpenGL objects) and get the unique ID corresponding to that buffer
-	glBindBuffer(GL_ARRAY_BUFFER, vbo); // bind the newly created buffer to the GL_ARRAY_BUFFER target
-	glBufferData(GL_ARRAY_BUFFER, (vertices.size() * sizeof(MyVertex)), vertices.data(), GL_STATIC_DRAW); // copies the previously defined vertex data into the buffer's memory
-
-	// vertex position
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)0);
-	glEnableVertexAttribArray(0);
-
-	// normal
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 3));
-	glEnableVertexAttribArray(1);
-
-	// color
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 6));
-	glEnableVertexAttribArray(2);
-
-	// vertex texture coordinates
-	glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 9));
-	glEnableVertexAttribArray(3);
-
-	//// ambient
-	//glVertexAttribPointer(6, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 11));
-	//glEnableVertexAttribArray(2);
-
-	//// specular
-	//glVertexAttribPointer(7, 3, GL_FLOAT, GL_FALSE, vertex_stride, (void*)(sizeof(float) * 14));
-	//glEnableVertexAttribArray(2);
-
-	//material index
-	glVertexAttribIPointer(5, 1, GL_INT, vertex_stride, (void*)(sizeof(int) * 17));
-	glEnableVertexAttribArray(5);
-
-
-	GLMaterial* gl_materials = new GLMaterial[materials_.size()];
-	int m = 0;
-	for (const auto& material : materials_) {
-		Texture3u* tex_diffuse = material->texture(Material::kDiffuseMapSlot);
-		if (tex_diffuse) {
-			GLuint id = 0;
-			CreateBindlessTexture(id, gl_materials[m].tex_diffuse_handle, tex_diffuse->width(), tex_diffuse->height(), (GLubyte*)tex_diffuse->data());
-			gl_materials[m].diffuse = Color3f({ 1.0f, 1.0f, 1.0f }); // white diffuse color
-			gl_materials[m].ambient = material->ambient_;
-			gl_materials[m].specular = material->specular_;
-		}
-		else {
-			GLuint id = 0;
-			GLubyte data[] = { 255, 255, 255, 255 }; // opaque white
-			CreateBindlessTexture(id, gl_materials[m].tex_diffuse_handle, 1, 1, data); // white texture
-			gl_materials[m].diffuse = material->diffuse();
-			gl_materials[m].ambient = material->ambient_;
-			gl_materials[m].specular = material->specular_;
-		}
-		m++;
-	}
-	
-	GLuint ssbo_materials = 0;
-	glGenBuffers(1, &ssbo_materials);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_materials);
-	const GLsizeiptr gl_materials_size = sizeof(GLMaterial) * materials_.size();
-	glBufferData(GL_SHADER_STORAGE_BUFFER, gl_materials_size, gl_materials, GL_STATIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_materials);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-
-	//GLuint ebo = 0; // optional buffer of indices
-	//glGenBuffers( 1, &ebo );
-	//glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ebo );
-	//glBufferData( GL_ELEMENT_ARRAY_BUFFER, (indices.size() * sizeof(int)), indices.data(), GL_STATIC_DRAW );
-
-	glPointSize(2.0f);
-	glLineWidth(1.0f);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	InitFrameBuffers();
-	//main loop
-	//release device
-
-	return EXIT_SUCCESS;
-}
-int Rasterizer::InitDeviceAndScenePBR(const char* filename)
-{
-	glfwSetErrorCallback(glfw_callback);
-
-	if (!glfwInit())
-	{
-		return(EXIT_FAILURE);
-	}
-
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_SAMPLES, 8);
-	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-	glfwWindowHint(GLFW_DOUBLEBUFFER, GL_TRUE);
-	//glfwWindowHint(GLFW_SRGB_CAPABLE, GLFW_TRUE);
-
-	window = glfwCreateWindow(camera.width_, camera.height_, "PG2 OpenGL", nullptr, nullptr);
-	if (!window)
-	{
-		glfwTerminate();
-		return EXIT_FAILURE;
-	}
-
-
-	glfwSetKeyCallback(window, key_callback);
-
-	glfwSetWindowUserPointer(window, this);
-	glfwSetFramebufferSizeCallback(window, framebuffer_resize_callback);
-	glfwMakeContextCurrent(window);
-
-	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-	{
-		if (!gladLoadGL())
-		{
-			return EXIT_FAILURE;
-		}
-	}
-
-	glEnable(GL_DEBUG_OUTPUT);
-	glDebugMessageCallback(gl_callback, nullptr);
-
-	printf("OpenGL %s, ", glGetString(GL_VERSION));
-	printf("%s", glGetString(GL_RENDERER));
-	printf(" (%s)\n", glGetString(GL_VENDOR));
-	printf("GLSL %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
-
-	check_gl();
-
-	glEnable(GL_MULTISAMPLE);
-	glEnable(GL_FRAMEBUFFER_SRGB);
-	// map from the range of NDC coordinates <-1.0, 1.0>^2 to <0, width> x <0, height>
-	glViewport(0, 0, camera.width_, camera.height_);
-
-
-	const int no_surfaces = LoadOBJ(filename, surfaces_, materials_);
-	this->no_triangles = 0;
-
-	for (auto surface : surfaces_)
-	{
-		this->no_triangles += surface->no_triangles();
-	}
-
-	std::vector<MyVertex> vertices;
-	std::vector<int> indices;
-	// surfaces loop
-	int k = 0, l = 0;
-	for (auto surface : surfaces_)
-	{
-
-		// triangles loop
-		for (int i = 0; i < surface->no_triangles(); ++i, ++l)
-		{
-			Triangle& triangle = surface->get_triangle(i);
-
-			//// vertices loop
-			for (int j = 0; j < 3; ++j, ++k)
-			{
-				const Vertex& vertex = triangle.vertex(j);
-				Material* m = surface->get_material();
-				int m_index = m->material_index;
-				vertices.push_back(MyVertex(vertex, m_index));
-
-			}
-
-		} // end of triangles loop
-
-	} // end of surfaces loop
 	vertex_shader = glCreateShader(GL_VERTEX_SHADER);
 	const char* vertex_shader_source = LoadShader("basic_shader_PBR.vert");
 
@@ -471,6 +248,43 @@ int Rasterizer::InitDeviceAndScenePBR(const char* filename)
 	glAttachShader(shader_program, vertex_shader);
 	glAttachShader(shader_program, fragment_shader);
 	glLinkProgram(shader_program);
+}
+int Rasterizer::InitScenePBR(const char* filename) {
+
+	const int no_surfaces = LoadOBJ(filename, surfaces_, materials_);
+	this->no_triangles = 0;
+
+	for (auto surface : surfaces_)
+	{
+		this->no_triangles += surface->no_triangles();
+	}
+
+	std::vector<MyVertex> vertices;
+	std::vector<int> indices;
+	// surfaces loop
+	int k = 0, l = 0;
+	for (auto surface : surfaces_)
+	{
+
+		// triangles loop
+		for (int i = 0; i < surface->no_triangles(); ++i, ++l)
+		{
+			Triangle& triangle = surface->get_triangle(i);
+
+			//// vertices loop
+			for (int j = 0; j < 3; ++j, ++k)
+			{
+				const Vertex& vertex = triangle.vertex(j);
+				Material* m = surface->get_material();
+				int m_index = m->material_index;
+				vertices.push_back(MyVertex(vertex, m_index));
+
+			}
+
+		} // end of triangles loop
+
+	} // end of surfaces loop
+
 	const int size = (vertices.size() * sizeof(MyVertex)); // count of elements in vector * size of one element = size of whole array
 	const int vertex_stride = sizeof(MyVertex); // size of one MyVertex
 	// optional index array
@@ -497,45 +311,47 @@ int Rasterizer::InitDeviceAndScenePBR(const char* filename)
 	offset += set_attribute(sizeof(MyVertex), location++, GL_FLOAT, 3, offset);
 	//material index
 	offset += set_attribute(sizeof(MyVertex), location++, GL_INT, 1, offset);
-	
+
 	/*PBR shader*/
 	GLMaterialPBR* gl_materials = new GLMaterialPBR[materials_.size()];
 	int m = 0;
 	for (const auto& material : materials_) {
 		Texture3u* tex_diffuse = material->texture(Material::kDiffuseMapSlot);
+		gl_materials[m].diffuse = material->diffuse_;
+
 		if (tex_diffuse) {
 			GLuint id = 0;
 			CreateBindlessTexture(id, gl_materials[m].tex_diffuse_handle, tex_diffuse->width(), tex_diffuse->height(), (GLubyte*)tex_diffuse->data());
-			gl_materials[m].diffuse = material->diffuse_; // white diffuse color
 		}
 		else {
 			GLuint id = 0;
 			GLubyte data[] = { 255, 255, 255, 255 }; // opaque white
 			CreateBindlessTexture(id, gl_materials[m].tex_diffuse_handle, 1, 1, data); // white texture
-			gl_materials[m].diffuse = material->diffuse_;
 		}
-		Texture3u* tex_norm =  material->texture(Material::kNormalMapSlot);
+		Texture3u* tex_norm = material->texture(Material::kNormalMapSlot);
 		if (tex_norm) {
 			GLuint id = 0;
 			CreateBindlessTexture(id, gl_materials[m].tex_normal_handle, tex_norm->width(), tex_norm->height(), (GLubyte*)tex_norm->data());
-			gl_materials[m].normal = Color3f({ -1.f, 1.f, 1.f }); // -1 indicates to use texture
+			gl_materials[m].normal = Color3f({ -1.f, -1.f, -1.f }); // -1 indicates to use texture
 		}
 		else {
 			GLuint id = 0;
 			GLubyte data[] = { 255, 255, 255, 255 }; // opaque white
 			CreateBindlessTexture(id, gl_materials[m].tex_normal_handle, 1, 1, data); // white texture
-			gl_materials[m].normal = Color3f({ 1.f, 1.f, 1.f }); 
+			gl_materials[m].normal = Color3f({ 1.f, 1.f, 1.f });
 		}
 		Texture3u* tex_rma = material->texture(Material::kRMAMapSlot);
-		gl_materials[m].rma = Color3f({ material->roughness_, material->metallicness, 1.0 });
 		if (tex_rma) {
 			GLuint id = 0;
 			CreateBindlessTexture(id, gl_materials[m].tex_rma_handle, tex_rma->width(), tex_rma->height(), (GLubyte*)tex_rma->data());
+			gl_materials[m].rma = Color3f({ 1.0,1.0, material->ior });
+
 		}
 		else {
 			GLuint id = 0;
 			GLubyte data[] = { 255, 255, 255, 255 }; // opaque white
 			CreateBindlessTexture(id, gl_materials[m].tex_rma_handle, 1, 1, data); // white texture
+			gl_materials[m].rma = Color3f({ material->roughness_, material->metallicness, material->ior });
 		}
 		m++;
 	}
@@ -547,6 +363,9 @@ int Rasterizer::InitDeviceAndScenePBR(const char* filename)
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_materials);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
+	return EXIT_SUCCESS;
+}
+int Rasterizer::FinishSetup() {
 
 	glPointSize(2.0f);
 	glLineWidth(1.0f);
@@ -555,10 +374,94 @@ int Rasterizer::InitDeviceAndScenePBR(const char* filename)
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	InitFrameBuffers();
-	//main loop
-	//release device
+
 
 	return EXIT_SUCCESS;
+}
+
+void Rasterizer::LoadEnvTextures(std::vector<const char*> files)
+{
+	int cnt = files.size() - 1;
+	int i = 0;
+	glGenTextures(1, &tex_env_map_);
+	glBindTexture(GL_TEXTURE_2D, tex_env_map_);
+	if (glIsTexture(tex_env_map_)) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, files.size() - 1);
+
+
+		for (auto file : files)
+		{
+			Texture3f texture(file);
+
+			glTexImage2D(GL_TEXTURE_2D, i, GL_RGB32F, texture.width(), texture.height(), 0, GL_RGB, GL_FLOAT, texture.data());
+			i++;
+		}
+		glUseProgram(shader_program);
+		handle_env_map_ = glGetTextureHandleARB(tex_env_map_);
+		glMakeTextureHandleResidentARB(handle_env_map_);
+		SetHandle(shader_program, handle_env_map_, "env_map");
+		SetInt(shader_program, cnt, "max_level");
+	}
+}
+void Rasterizer::LoadBrdfIntTexture(const char* file) {
+	Texture3f texture(file);
+
+	glGenTextures(1, &tex_brdf_map_);
+	glBindTexture(GL_TEXTURE_2D, tex_brdf_map_);
+	if (glIsTexture(tex_brdf_map_)) {
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, texture.width(), texture.height(), 0, GL_RGB, GL_FLOAT, texture.data());
+
+		glUseProgram(shader_program);
+		handle_brdf_map_ = glGetTextureHandleARB(tex_brdf_map_);
+
+		glMakeTextureHandleResidentARB(handle_brdf_map_);
+		SetHandle(shader_program, handle_brdf_map_, "brdf_map");
+	}
+}
+void Rasterizer::LoadIrradianceTexture(const char* file) {
+	Texture3f texture(file);
+
+	glGenTextures(1, &tex_ir_map_);
+	glBindTexture(GL_TEXTURE_2D, tex_ir_map_);
+	if (glIsTexture(tex_ir_map_)) {
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, texture.width(), texture.height(), 0, GL_RGB, GL_FLOAT, texture.data());
+
+		glUseProgram(shader_program);
+		handle_ir_map_ = glGetTextureHandleARB(tex_ir_map_);
+		glMakeTextureHandleResidentARB(handle_ir_map_);
+		SetHandle(shader_program, handle_ir_map_, "ir_map");
+	}
+}
+void Rasterizer::BufferTexturesToShader() {
+	GLTexturesPBR* texs = new GLTexturesPBR[1];
+	texs[0].tex_brdf_handle = handle_brdf_map_;
+	texs[0].tex_env_handle = handle_env_map_;
+	texs[0].tex_ir_handle = handle_ir_map_;
+
+	GLuint ssbo_texs = 0;
+	glGenBuffers(1, &ssbo_texs);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_texs);
+	const GLsizeiptr gl_texs_size = sizeof(GLTexturesPBR);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, gl_texs_size, texs, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo_texs);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 int Rasterizer::InitShaderProgram()
@@ -643,10 +546,10 @@ void Rasterizer::InitFrameBuffers()
 	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 }
 
-int Rasterizer::MainLoop(Vector3 lightPos,bool rotate = true)
+int Rasterizer::MainLoop(Vector3 lightPos, bool rotate = true)
 {
 	glUseProgram(shader_program);
-
+	camera.rotate = rotate;
 	float a = deg2rad(1);
 	while (!glfwWindowShouldClose(window))
 	{
@@ -655,9 +558,9 @@ int Rasterizer::MainLoop(Vector3 lightPos,bool rotate = true)
 		glDrawBuffer(GL_COLOR_ATTACHMENT0);
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // state setting function
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT); // state using function
-
+		handle_mouse();
 		glBindVertexArray(vao);
-		if (rotate)
+		if (camera.rotate)
 		{
 			camera.Rotate(a);
 			//a += 1e-4f;

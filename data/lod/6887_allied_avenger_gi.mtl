@@ -4,21 +4,18 @@
 newmtl black_phong
     Ns 50
     Ni 1.460
-	Pm 0.5
-	Pr 0.6
     d 1
     Tr 0
     Tf 1 1 1
     illum 2
     Ka 0.2 0.2 0.2
-    Kd 0.0 0.0 0.0
+    Kd 0.01 0.01 0.01
     Ks 0.3 0.3 0.3
     Ke 0.0 0.0 0.0
     shader 7
 
 newmtl green_plastic_transparent
     Ns 5
-	Pr 100.0
     d 1
     Tr 0
     Tf 1 1 1
@@ -40,18 +37,6 @@ newmtl white_phong
     Ka 0.2 0.2 0.2
     Kd 0.95 0.95 0.95
     Ks 0.5 0.5 0.5
-    Ke 0.0 0.0 0.0
-    shader 7
-
-newmtl wire_177088027
-    Ns 32
-    d 1
-    Tr 0
-    Tf 1 1 1
-    illum 2
-    Ka 0.1 0.1 0.1
-    Kd 0.95 0.95 0.95
-    Ks 0.0 0.0 0.0
     Ke 0.0 0.0 0.0
     shader 7
 
@@ -81,6 +66,18 @@ newmtl white_phong_3069bp13
     Ks 0.5 0.5 0.5
     Ke 0.0 0.0 0.0
     map_Kd 3069bp13.jpg
+    shader 7
+
+newmtl wire_177088027
+    Ns 32
+    d 1
+    Tr 0
+    Tf 1 1 1
+    illum 2
+    Ka 0.1 0.1 0.1
+    Kd 0.95 0.95 0.95
+    Ks 0.0 0.0 0.0
+    Ke 0.0 0.0 0.0
     shader 7
 
 newmtl wire_027177027

@@ -205,8 +205,6 @@
     <ClCompile Include="vertex.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="basic_shader.frag" />
-    <None Include="basic_shader.vert" />
     <None Include="basic_shader_PBR.frag" />
     <None Include="basic_shader_PBR.vert" />
   </ItemGroup>

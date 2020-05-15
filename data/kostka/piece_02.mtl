@@ -11,4 +11,4 @@ newmtl white_plastic
 	Ke 0 0 0
 	map_RMA plastic_02_rma.png
 	map_bump scuffed-plastic-normal.png
-	shader 7
+	shader 5

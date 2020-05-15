@@ -3,7 +3,9 @@
 
 int main()
 {
-	printf( "PG2 OpenGL, (c)2019 Tomas Fabian\n\n" );
+	printf( "Template - PG2 OpenGL, (c)2019 Tomas Fabian\n\n" );
+	printf("Changed - PG2, (c)2020 Bara Gronova \n\n");
 
-	return tutorial_1();
+	//return avenger();
+	return piece();
 }

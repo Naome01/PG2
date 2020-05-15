@@ -134,22 +134,22 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 				if ( strstr( tmp, "Ka" ) == tmp ) // ambient color of the material
 				{
 					sscanf( tmp, "%*s %f %f %f", &material->ambient_.data[0], &material->ambient_.data[1], &material->ambient_.data[2] );					
-					material->ambient_ = Color3f::toLinear( material->ambient_ );
+					material->ambient_ =  material->ambient_ ;
 				}
 				else if ( strstr( tmp, "Kd" ) == tmp ) // diffuse color of the material
 				{
 					sscanf( tmp, "%*s %f %f %f", &material->diffuse_.data[0], &material->diffuse_.data[1], &material->diffuse_.data[2] );
-					material->diffuse_ = Color3f::toLinear( material->diffuse_ );
+					material->diffuse_ =  material->diffuse_ ;
 				}
 				else if ( strstr( tmp, "Ks" ) == tmp ) // specular color of the material
 				{
 					sscanf( tmp, "%*s %f %f %f", &material->specular_.data[0], &material->specular_.data[1], &material->specular_.data[2] );
-					material->specular_ = Color3f::toLinear( material->specular_ );
+					material->specular_ =  material->specular_ ;
 				}
 				else if ( strstr( tmp, "Ke" ) == tmp ) // emission color of the material
 				{
 					sscanf( tmp, "%*s %f %f %f", &material->emission_.data[0], &material->emission_.data[1], &material->emission_.data[2] );
-					material->emission_ = Color3f::toLinear(material->emission_);
+					material->emission_ = material->emission_;
 				}
 				else if ( strstr( tmp, "Ns" ) == tmp ) // specular coefficient
 				{

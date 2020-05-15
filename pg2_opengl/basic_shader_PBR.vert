@@ -23,6 +23,7 @@ layout (std430, binding = 0) readonly buffer Materials
 {
 	Material materials[];
 };
+
 uniform mat4 MVP;
 uniform mat4 MV; 
 uniform vec3 in_eye; 
@@ -38,6 +39,8 @@ out float light;
 out vec3 ex_color_amb;
 out vec3 ex_color_spec;
 out mat4x4 view_matrix;
+out mat4x4 normal_matrix;
+
 flat out int ex_material_index;
 
 void main( void )
@@ -45,17 +48,20 @@ void main( void )
 	gl_Position = MVP * vec4(in_position.x, in_position.y, in_position.z, 1.0f);
 
 	vec3 T = normalize(in_tangent);
-	vec3 N = in_normal;
-	vec3 B = cross(T, N);
+	vec3 N = normalize(in_normal);
+	vec3 B = normalize(cross(T, N));
 	if(dot(cross(T, N), B) < 0)
 		T = -T;
 	ex_TBN = mat3(T, B, N);
 
+	mat4 MVn = transpose(inverse(MV));
+	ex_normal = in_normal;
+	normal_matrix = MVn;
+	ex_normal = in_normal;
 	ex_material_index = in_material_index;
 	ex_color = in_color;
-	ex_normal = in_normal;
 	ex_tex_coord = vec2(in_texcoord.x, 1.0 - in_texcoord.y);
 	view_matrix = MV;
-	ex_pos = gl_Position.rgb;
+	ex_pos = in_position;
 	ex_eye = in_eye;
 }

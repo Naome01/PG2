@@ -17,12 +17,19 @@ public:
 	~Rasterizer();
 
 	int InitDeviceAndScene(const char* filename);
-	int InitDeviceAndScenePBR(const char* filename);
+	void handle_mouse();
+	int InitDevice();
+	int InitScenePBR(const char* filename);
+	int FinishSetup();
+	void LoadEnvTextures(std::vector<const char*> files);
+	void LoadBrdfIntTexture(const char* file);
 	int InitShaderProgram();
 	void InitFrameBuffers();
 	int MainLoop( Vector3 lightPos, bool rotate);
 	int ReleaseDeviceAndScene();
 	void Resize(int width, int height);
+	void LoadIrradianceTexture(const char* file);
+	void BufferTexturesToShader();
 
 	bool check_gl(const GLenum error = glGetError());
 
@@ -42,7 +49,7 @@ public:
 	GLuint rbo_color = 0;
 	GLuint rbo_depth = 0;
 	int no_triangles = 0;
-
+	bool pressedMouse = false;
 	GLuint vertex_shader;
 	GLuint fragment_shader;
 	GLuint shader_program;
@@ -52,6 +59,14 @@ public:
 	GLuint shadow_program;
 
 	GLFWwindow* window;
+
+	GLuint tex_brdf_map_{ 0 };
+	GLuint tex_env_map_{ 0 };
+	GLuint tex_ir_map_{ 0 };
+
+	GLuint64 handle_brdf_map_{ 0 };
+	GLuint64 handle_env_map_{ 0 };
+	GLuint64 handle_ir_map_{ 0 };
 
 private:
 	std::vector<Surface*> surfaces_;

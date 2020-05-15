@@ -43,7 +43,7 @@ public:
 	int width_{ 640 }; // image width (px)
 	int height_{ 480 };  // image height (px)
 	float fov_y_{ 0.785f }; // vertical field of view (rad)
-
+	bool rotate = false;
 private:
 
 	Vector3 view_from_; // ray origin or eye or O

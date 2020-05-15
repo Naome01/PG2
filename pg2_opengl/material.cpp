@@ -21,7 +21,7 @@ Material::Material()
 	reflectivity = static_cast<float>( 0.99 );
 	shininess = 1.0f;
 	roughness_ = 1.0f;
-	metallicness = 0.0f;
+	metallicness = 0.5f;
 
 	ior = -1.0f;
 

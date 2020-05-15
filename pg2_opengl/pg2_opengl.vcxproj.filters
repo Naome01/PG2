@@ -157,12 +157,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="basic_shader.vert">
-      <Filter>Source Files\opengl</Filter>
-    </None>
-    <None Include="basic_shader.frag">
-      <Filter>Source Files\opengl</Filter>
-    </None>
     <None Include="basic_shader_PBR.vert">
       <Filter>Source Files\opengl</Filter>
     </None>
